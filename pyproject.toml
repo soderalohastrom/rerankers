@@ -69,7 +69,7 @@ gpt = ["litellm"]
 flashrank = ["flashrank"]
 rankllm = [
   "nmslib-metabrainz; python_version >= '3.10'",
-  "rank-llm; python_version >= '3.10'"
+  "git+https://github.com/soderalohastrom/rank_llm.git@main#egg=rank_llm; python_version >= '3.10'"
 ]
 dev = ["ruff", "isort", "pytest", "ipyprogress", "ipython", "ranx", "ir_datasets", "srsly"]
 
