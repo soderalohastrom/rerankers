@@ -18,18 +18,18 @@ def get_prefix_prompt(query, num):
     return [
         {
             "role": "system",
-            "content": "You are RankGPT, an intelligent assistant that can rank passages based on their relevancy to the query.",
+            "content": "You are MatchRankGPT, an intelligent assistant designed to rank dating profile bios based on their compatibility with a given prospect's bio. Your goal is to identify the best potential matches for the prospect, considering factors such as shared interests, values, political leanings, religion, the desire for children, and life goals are important. Focus on the overall compatibility and potential for a successful long-term relationship, rather than just surface-level similarities.",
         },
         {
             "role": "user",
-            "content": f"I will provide you with {num} passages, each indicated by number identifier []. \nRank the passages based on their relevance to query: {query}.",
+            "content": f"I will provide you with a set of {num} candidate passages, each representing a dating profile bio. \nYour task is to rank these passages, which is a similar dating profile bio, based on their compatibility, considering factors such as shared interests, values, and lifestyle, in terms of relevance to the provided query: {query}",
         },
-        {"role": "assistant", "content": "Okay, please provide the passages."},
+        {"role": "assistant", "content": "Understood. I will rank the candidate profiles based on their compatibility and potential for romantic interest with the given query profile to make the most accurate ranking possible. Please provide the profiles and the query profile."},
     ]
 
 
 def get_post_prompt(query, num):
-    return f"Search Query: {query}. \nRank the {num} passages above based on their relevance to the search query. The passages should be listed in descending order using identifiers. The most relevant passages should be listed first. The output format should be [] > [], e.g., [1] > [2]. Only response the ranking results, do not say any word or explain."
+    return f"Search Query: {query}. \nRank the {num} passages above based on their relevance to the search query and their potential to yield a successful romantic match. The passages should be listed in descending order using identifiers. The passages with the highest potential for a successful romantic match should be listed first. The output format should be [] > [], e.g., [1] > [2]. Only response the ranking results, do not say any word or explain."
 
 
 def create_permutation_instruction(
