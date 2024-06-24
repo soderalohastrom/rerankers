@@ -42,7 +42,7 @@ def create_permutation_instruction(
     query = item["query"]
     num = len(item["hits"][rank_start:rank_end])
 
-    max_length = 300
+    max_length = 4096
 
     messages = get_prefix_prompt(query, num)
     rank = 0
