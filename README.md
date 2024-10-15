@@ -12,14 +12,12 @@ _A lightweight unified API for various reranking models. Developed by [@bclavie]
 
 Welcome to `rerankers`! Our goal is to provide users with a simple API to use any reranking models.
 
-## Updates
+## Recent Updates
+_A longer release history can be found in the [Release History](#release-history) section of this README._
 
-- v0.3.1: T5 bugfix and native default support for new Portuguese T5 rerankers.
-- v0.3.0: 🆕 Many changes! Experimental support for RankLLM, directly backed by the [rank-llm library](https://github.com/castorini/rank_llm). A new `Document` object, courtesy of joint-work by [@bclavie](https://github.com/bclavie) and [Anmol6](https://github.com/Anmol6). This object is transparent, but now offers support for `metadata` stored alongside each document. Many small QoL changes (RankedResults can be itered on directly...)
-- v0.2.0: [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank) rerankers, Basic async support thanks to [@tarunamasa](https://github.com/tarunamasa), MixedBread.ai reranking API
-- v0.1.2: Voyage reranking API
-- v0.1.1: Langchain integration fixed!
-- v0.1.0: Initial release
+- v0.5.2: Minor ColBERT fixes
+- v0.5.1: Minor change making RankedResults subscribable, meaning results[0] will return the result for the first document, etc... ⚠️ This is sorted by **passed document order**, not by results, you should use `.top_k()` to get sorted results!
+- v0.5.0: Added support for the current state-of-the-art rerankers, BAAI's series of `BGE` layerwise LLM rerankers, based on [Gemma](https://huggingface.co/BAAI/bge-reranker-v2.5-gemma2-lightweight) and MiniCPM. These are different from RankGPT, as they're not listwise: the models are repurposed as "cross-encoders", and do output logit scores.
 
 ## Why `rerankers`?
 
@@ -59,11 +57,14 @@ pip install "rerankers[gpt]"
 pip install "rerankers[api]"
 
 # FlashRank rerankers (ONNX-optimised, very fast on CPU)
-pip install "rerankers[fastrank]"
+pip install "rerankers[flashrank]"
 
 # RankLLM rerankers (better RankGPT + support for local models such as RankZephyr and RankVicuna)
 # Note: RankLLM is only supported on Python 3.10+! This will not work with Python 3.9
 pip install "rerankers[rankllm]"
+
+# To support LLM-Layerwise rerankers (which need flash-attention installed)
+pip install "rerankers[llmlayerwise]"
 
 # All of the above
 pip install "rerankers[all]"
@@ -117,20 +118,14 @@ ranker = Reranker("rankllm", api_key = API_KEY)
 # RankLLM with specified GPT models
 ranker = Reranker('gpt-4-turbo', model_type="rankllm", api_key = API_KEY)
 
-# EXPERIMENTAL: RankLLM with RankZephyr
-ranker = Reranker('rankzephyr')
-
 # ColBERTv2 reranker
 ranker = Reranker("colbert")
 
+# LLM Layerwise Reranker
+ranker = Reranker('llm-layerwise')
+
 # ... Or a non-default colbert model:
 ranker = Reranker(model_name_or_path, model_type = "colbert")
-
-# Flashrank
-ranker = Reranker('flashrank')
-
-# ... Or a specific model
-ranker = Reranker('ms-marco-TinyBERT-L-2-v2', model_type='flashrank')
 
 ```
 
@@ -141,7 +136,7 @@ Then, regardless of which reranker is loaded, use the loaded model to rank a que
 ```python
 > results = ranker.rank(query="I love you", docs=["I hate you", "I really like you"], doc_ids=[0,1])
 > results
-RankedResults(results=[Result(document=Document(text='I really like you', doc_id=0), score=-2.453125, rank=1), Result(document=Document(text='I hate you', doc_id=1), score=-4.14453125, rank=2)], query='I love you', has_scores=True)
+RankedResults(results=[Result(document=Document(text='I really like you', doc_id=1), score=-2.453125, rank=1), Result(document=Document(text='I hate you', doc_id=0), score=-4.14453125, rank=2)], query='I love you', has_scores=True)
 ```
 
 You don't need to pass `doc_ids`! If not provided, they'll be auto-generated as integers corresponding to the index of a document in `docs`.
@@ -152,7 +147,7 @@ You're free to pass metadata too, and it'll be stored with the documents. It'll 
 ```python
 > results = ranker.rank(query="I love you", docs=["I hate you", "I really like you"], doc_ids=[0,1], metadata=[{'source': 'twitter'}, {'source': 'reddit'}])
 > results
-RankedResults(results=[Result(document=Document(text='I really like you', doc_id=0, metadata={'source': 'twitter'}), score=-2.453125, rank=1), Result(document=Document(text='I hate you', doc_id=1, metadata={'source': 'reddit'}), score=-4.14453125, rank=2)], query='I love you', has_scores=True)
+RankedResults(results=[Result(document=Document(text='I really like you', doc_id=1, metadata={'source': 'twitter'}), score=-2.453125, rank=1), Result(document=Document(text='I hate you', doc_id=0, metadata={'source': 'reddit'}), score=-4.14453125, rank=2)], query='I love you', has_scores=True)
 ```
 
 If you'd like your code to be a bit cleaner, you can also directly construct `Document` objects yourself, and pass those instead. In that case, you don't need to pass separate `doc_ids` and `metadata`:
@@ -170,7 +165,7 @@ You can also use `rank_async`, which is essentially just a wrapper to turn `rank
 ```python
 > results = await ranker.rank_async(query="I love you", docs=["I hate you", "I really like you"], doc_ids=[0,1])
 > results
-RankedResults(results=[Result(document=Document(text='I really like you', doc_id=0, metadata={'source': 'twitter'}), score=-2.453125, rank=1), Result(document=Document(text='I hate you', doc_id=1, metadata={'source': 'reddit'}), score=-4.14453125, rank=2)], query='I love you', has_scores=True)
+RankedResults(results=[Result(document=Document(text='I really like you', doc_id=1, metadata={'source': 'twitter'}), score=-2.453125, rank=1), Result(document=Document(text='I hate you', doc_id=0, metadata={'source': 'reddit'}), score=-4.14453125, rank=2)], query='I love you', has_scores=True)
 ```
 
 All rerankers will return a `RankedResults` object, which is a pydantic object containing a list of `Result` objects and some other useful information, such as the original query. You can retrieve the top `k` results from it by running `top_k()`:
@@ -203,9 +198,10 @@ Models:
 - ✅ Any standard SentenceTransformer or Transformers cross-encoder
 - ✅ RankGPT (Available both via the original RankGPT implementation and the improved RankLLM one)
 - ✅ T5-based pointwise rankers (InRanker, MonoT5...)
+- ✅ LLM-based pointwise rankers (BAAI/bge-reranker-v2.5-gemma2-lightweight, etc...)
 - ✅ Cohere, Jina, Voyage and MixedBread API rerankers
 - ✅ [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank) rerankers (ONNX-optimised models, very fast on CPU)
-- 🟠 ColBERT-based reranker - not a model initially designed for reranking, but quite strong (Implementation could be optimised and is from a third-party implementation.)
+- ✅ ColBERT-based reranker - not a model initially designed for reranking, but does perform quite strongly in some cases. Implementation is lightweight, based only on transformers.
 - 🟠⭐ RankLLM/RankZephyr: supported by wrapping the [rank-llm library](https://github.com/castorini/rank_llm) library! Support for RankZephyr/RankVicuna is untested, but RankLLM + GPT models fully works!
 - 📍 LiT5
 
@@ -216,3 +212,29 @@ Features:
 - ✅ ONNX runtime support --> Offered through [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank) -- in line with the philosophy of the lib, we won't reinvent the wheel when @PrithivirajDamodaran is doing amazing work!
 - 📍 Training on Python >=3.10 (via interfacing with other libraries)
 - ❌(📍Maybe?) Training via rerankers directly
+
+## Reference
+
+If rerankers has been useful to you in academic work, please do feel free to cite the work below!
+
+```
+@misc{clavié2024rerankers,
+      title={rerankers: A Lightweight Python Library to Unify Ranking Methods}, 
+      author={Benjamin Clavié},
+      year={2024},
+      eprint={2408.17344},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2408.17344}, 
+}
+```
+
+## Release History
+
+- v0.4.0: ColBERT performance improvement! It should now be faster and result in stronger results following implementation of the JaColBERTv2.5 dynamic query length method. This version also now supports HuggingFace's Text-Embedding-Server (TEI) inference as an API reranker option, thanks to [@srisudarsan](https://github.com/srisudarsan).
+- v0.3.1: T5 bugfix and native default support for new Portuguese T5 rerankers.
+- v0.3.0: Many changes! Experimental support for RankLLM, directly backed by the [rank-llm library](https://github.com/castorini/rank_llm). A new `Document` object, courtesy of joint-work by [@bclavie](https://github.com/bclavie) and [Anmol6](https://github.com/Anmol6). This object is transparent, but now offers support for `metadata` stored alongside each document. Many small QoL changes (RankedResults can be itered on directly...)
+- v0.2.0: [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank) rerankers, Basic async support thanks to [@tarunamasa](https://github.com/tarunamasa), MixedBread.ai reranking API
+- v0.1.2: Voyage reranking API
+- v0.1.1: Langchain integration fixed!
+- v0.1.0: Initial release

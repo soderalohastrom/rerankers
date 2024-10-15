@@ -36,6 +36,10 @@ class RankedResults(BaseModel):
         """Allows iteration over the results list."""
         return iter(self.results)
 
+    def __getitem__(self, index):
+        """Allows indexing to access results directly."""
+        return self.results[index]
+
     def results_count(self) -> int:
         """Returns the total number of results."""
         return len(self.results)
@@ -58,3 +62,8 @@ class RankedResults(BaseModel):
         """Fetches the score of a result by its doc_id using a more efficient approach."""
         result = next((r for r in self.results if r.document.doc_id == doc_id), None)
         return result.score if result else None
+
+    def get_result_by_docid(self, doc_id: [Union[int, str]]) -> Result:
+        """Fetches a result by its doc_id using a more efficient approach."""
+        result = next((r for r in self.results if r.document.doc_id == doc_id), None)
+        return result if result else None
